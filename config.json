@@ -3,38 +3,31 @@
   "mcpServers": {
     "hello_tool": {
       "command": "python3",
-      "args": ["-m", "hello_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/hello_tool.py"]
     },
     "teachers_tool": {
       "command": "python3",
-      "args": ["-m", "teachers_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/teachers_tool.py"]
     },
     "weather_tool": {
       "command": "python3",
-      "args": ["-m", "weather_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/weather_tool.py"]
     },
     "calendar_tool": {
       "command": "python3",
-      "args": ["-m", "calendar_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/calendar_tool.py"]
     },
     "rules_tool": {
       "command": "python3",
-      "args": ["-m", "rules_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/rules_tool.py"]
     },
     "library_tool": {
       "command": "python3",
-      "args": ["-m", "library_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/library_tool.py"]
     },
     "course_tool": {
       "command": "python3",
-      "args": ["-m", "course_tool"],
-      "cwd": "mcp-server-py"
+      "args": ["mcp-server-py/course_tool.py"]
     }
   }
 }
