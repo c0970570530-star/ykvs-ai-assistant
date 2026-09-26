@@ -13,10 +13,6 @@
       "command": "python3",
       "args": ["mcp-server-py/weather_tool.py"]
     },
-    "rules_tool": {
-      "command": "python3",
-      "args": ["mcp-server-py/rules_tool.py"]
-    },
     "library_tool": {
       "command": "python3",
       "args": ["mcp-server-py/library_tool.py"]
