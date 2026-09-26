@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1556a8">
+  <title>Mini AI Assistant &amp; YKVS demo</title>
+  <style>
+    :root { color-scheme: light; --blue:#1556a8; --pale:#e7f0ff; --line:#d8dee8; --ink:#243247; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7fb; color:var(--ink); font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC",sans-serif; }
+    main { width:min(900px,100%); margin:0 auto; padding:24px 18px 36px; }
+    header { display:flex; align-items:center; gap:12px; margin:0 0 16px; }
+    .crest { width:42px; height:42px; display:grid; place-items:center; border-radius:13px; color:#fff; background:var(--blue); font-size:22px; }
+    h1 { margin:0; font-size:clamp(1.2rem,3vw,1.65rem); font-weight:700; }
+    .sub { color:#617188; margin:3px 0 0; font-size:.9rem; }
+    .panel { border:1px solid var(--line); border-radius:14px; background:#fff; padding:16px; box-shadow:0 5px 22px #173b6810; }
+    #log { height:min(58vh,570px); min-height:300px; overflow:auto; padding:4px 2px 10px; }
+    .msg { margin:8px 0; padding:11px 13px; border-radius:10px; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.65; }
+    .user { background:var(--pale); margin-left:8%; }
+    .assistant { border:1px solid #e2e7ef; background:#fff; margin-right:4%; }
+    .meta { color:#748196; font-size:.78rem; margin-bottom:3px; }
+    a { color:#0759b5; text-decoration:underline; text-underline-offset:2px; }
+    .examples { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 12px; }
+    .examples button { border:1px solid #cdd8e8; background:#f8fbff; color:#24486f; border-radius:20px; padding:7px 11px; cursor:pointer; font:inherit; font-size:.88rem; }
+    .examples button:hover { border-color:var(--blue); background:#edf5ff; }
+    label { display:block; font-weight:600; margin:6px 0; }
+    textarea { display:block; width:100%; min-height:82px; resize:vertical; padding:11px 12px; border:1px solid #bbc6d5; border-radius:9px; font:inherit; }
+    textarea:focus { outline:3px solid #1556a833; border-color:var(--blue); }
+    .actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:9px; }
+    .actions button { border:0; border-radius:8px; padding:9px 18px; color:#fff; background:var(--blue); font:inherit; cursor:pointer; }
+    .actions button:disabled { opacity:.55; cursor:wait; }
+    .actions .clear { border:1px solid #cdd5df; background:#fff; color:#425168; }
+    .hint, footer { font-size:.82rem; color:#69788d; }
+    footer { margin-top:13px; }
+    @media (max-width:560px) { main { padding:15px 10px 24px; } .panel { padding:11px; } #log { min-height:270px; } .user { margin-left:3%; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="crest" aria-hidden="true">🎓</div>
+    <div><h1>Mini AI Assistant &amp; YKVS demo</h1><p class="sub">鶯歌工商校園公開資料查詢示範</p></div>
+  </header>
+  <section class="panel" aria-label="鶯歌工商校園資料查詢">
+    <div id="log" role="log" aria-live="polite" aria-label="對話紀錄"></div>
+    <div class="examples" aria-label="範例問題">
+      <button type="button" data-query="鶯歌工商生活輔導組分機是多少？">查詢生輔組分機</button>
+      <button type="button" data-query="資二忠班級分機是多少？">查詢班級分機</button>
+      <button type="button" data-query="在家因病不能到校，返校後幾天內要補辦請假？請提供規定來源。">查詢請假期限</button>
+      <button type="button" data-query="鶯歌工商學生在校使用行動載具有哪些規定？請附校方來源。">查詢行動載具規定</button>
+    </div>
+    <label for="msg">輸入問題</label>
+    <textarea id="msg" placeholder="例如：鶯歌工商生活輔導組分機是多少？"></textarea>
+    <div class="actions">
+      <span class="hint">按「送出」或 Ctrl+Enter 查詢</span>
+      <div><button id="clear" class="clear" type="button">清除對話</button> <button id="send" type="button">送出</button></div>
+    </div>
+  </section>
+  <footer>本頁查詢鶯歌工商提供的公開校務資料。規定內容與辦理方式請以校方最新公告及正式文件為準。</footer>
+</main>
+<script>
+  const logEl = document.getElementById('log');
+  const msgEl = document.getElementById('msg');
+  const sendBtn = document.getElementById('send');
+  const messages = [];
+
+  function appendTextWithLinks(parent, text) {
+    const pattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<>"')\]]+)/g;
+    let last = 0, match;
+    while ((match = pattern.exec(text)) !== null) {
+      parent.appendChild(document.createTextNode(text.slice(last, match.index)));
+      const label = match[1] || match[3];
+      const href = match[2] || match[3];
+      try {
+        const url = new URL(href);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          const a = document.createElement('a');
+          a.href = url.href; a.textContent = label; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          parent.appendChild(a);
+        } else parent.appendChild(document.createTextNode(match[0]));
+      } catch { parent.appendChild(document.createTextNode(match[0])); }
+      last = pattern.lastIndex;
+    }
+    parent.appendChild(document.createTextNode(text.slice(last)));
+  }
+
+  function render(role, text) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + role;
+    const meta = document.createElement('div'); meta.className = 'meta';
+    meta.textContent = role === 'user' ? '你' : 'AI';
+    div.appendChild(meta);
+    appendTextWithLinks(div, String(text ?? ''));
+    logEl.appendChild(div); logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function send(query) {
+    const text = String(query ?? msgEl.value).trim();
+    if (!text || sendBtn.disabled) return;
+    messages.push({ role:'user', content:text }); render('user', text); msgEl.value=''; sendBtn.disabled=true;
+    try {
+      // Keep Colab proxy path prefixes (e.g. /proxy/3000/) when calling the API.
+      const chatUrl = new URL('./chat', window.location.href);
+      const res = await fetch(chatUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages}) });
+      const body = await res.text();
+      let data = {};
+      try { data = body ? JSON.parse(body) : {}; } catch { data = { error: body }; }
+      if (!res.ok) throw new Error(data.error || `${res.status} ${res.statusText || '伺服器回應錯誤'}`);
+      if (Array.isArray(data.messages)) { messages.length=0; messages.push(...data.messages); }
+      render('assistant', data.reply || '目前沒有收到文字回答。');
+    } catch (err) { render('assistant', '查詢失敗：' + err.message + '。請確認 Colab server 正在執行，再重新整理頁面。'); }
+    finally { sendBtn.disabled=false; msgEl.focus(); }
+  }
+
+  sendBtn.addEventListener('click', () => send());
+  msgEl.addEventListener('keydown', e => { if (e.key==='Enter' && (e.ctrlKey || e.metaKey)) send(); });
+  document.querySelectorAll('[data-query]').forEach(btn => btn.addEventListener('click', () => send(btn.dataset.query)));
+  document.getElementById('clear').addEventListener('click', () => { messages.length=0; logEl.replaceChildren(); msgEl.focus(); });
+</script>
+</body>
+</html>
