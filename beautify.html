@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>鶯歌工商 AI 智慧助理</title>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- 引入 Marked.js 用於支援 Markdown 語法解析 (自動渲染超連結與表格) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --accent: #38bdf8;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --user-bubble: #2563eb;
+            --ai-bubble: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; }
+        body { background: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 12px; }
+
+        .chat-container {
+            width: 100%; max-width: 950px; height: 92vh;
+            background: var(--card-bg); border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+            display: flex; flex-direction: column; overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        /* 頂部 Header */
+        .chat-header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white; padding: 16px 24px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .brand-logo {
+            width: 40px; height: 40px; background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px; display: flex; justify-content: center; align-items: center;
+            font-size: 20px; color: var(--accent);
+        }
+        .brand-text h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; }
+        .brand-text p { font-size: 0.78rem; color: #94a3b8; }
+
+        .header-actions button {
+            background: rgba(255, 255, 255, 0.1); border: none; color: white;
+            padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; cursor: pointer;
+            transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .header-actions button:hover { background: rgba(255, 255, 255, 0.2); }
+
+        /* 對話區 */
+        .chat-box {
+            flex: 1; padding: 24px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 18px; background: #f8fafc;
+        }
+
+        .message { display: flex; gap: 12px; max-width: 85%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.ai { align-self: flex-start; }
+
+        .avatar {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; flex-shrink: 0;
+        }
+        .user .avatar { background: #334155; color: white; }
+        .ai .avatar { background: var(--primary); color: white; }
+
+        .bubble {
+            padding: 14px 18px; border-radius: 16px; font-size: 0.92rem;
+            line-height: 1.6; word-break: break-word; box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        }
+        .user .bubble { background: var(--user-bubble); color: white; border-bottom-right-radius: 4px; }
+        .ai .bubble { background: var(--ai-bubble); border: 1px solid var(--border); border-bottom-left-radius: 4px; color: #1e293b; }
+
+        /* AI 泡泡內的 Markdown 樣式修飾 */
+        .ai .bubble a { color: var(--primary); text-decoration: underline; font-weight: 500; }
+        .ai .bubble ul, .ai .bubble ol { padding-left: 20px; margin: 8px 0; }
+        .ai .bubble li { margin-bottom: 4px; }
+        .ai .bubble p { margin-bottom: 8px; }
+        .ai .bubble p:last-child { margin-bottom: 0; }
+        .ai .bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 0.85rem; }
+        .ai .bubble th, .ai .bubble td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+        .ai .bubble th { background: #f1f5f9; font-weight: 600; }
+
+        /* 控制與分類頁籤區 */
+        .panel-area {
+            background: var(--card-bg); border-top: 1px solid var(--border);
+            padding: 12px 20px 4px 20px;
+        }
+
+        .category-tabs { display: flex; gap: 8px; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+        .tab-btn {
+            background: transparent; border: none; padding: 6px 12px;
+            font-size: 0.82rem; font-weight: 500; color: var(--text-muted);
+            cursor: pointer; border-radius: 6px; transition: all 0.2s;
+        }
+        .tab-btn.active { background: #eff6ff; color: var(--primary); font-weight: 700; }
+
+        .tab-content { display: none; gap: 8px; flex-wrap: wrap; min-height: 42px; }
+        .tab-content.active { display: flex; }
+
+        .chip-btn {
+            background: #f1f5f9; color: #334155; border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: 20px; font-size: 0.82rem;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .chip-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* 輸入區 */
+        .input-area { padding: 10px 20px 16px 20px; background: var(--card-bg); }
+        .input-box {
+            display: flex; align-items: center; gap: 8px; background: #f8fafc;
+            border: 1.5px solid var(--border); border-radius: 30px; padding: 4px 6px 4px 18px;
+            transition: all 0.2s;
+        }
+        .input-box:focus-within { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        .chat-input { flex: 1; border: none; outline: none; background: transparent; font-size: 0.92rem; }
+        .send-btn {
+            width: 38px; height: 38px; background: var(--primary); color: white;
+            border: none; border-radius: 50%; cursor: pointer; display: flex;
+            justify-content: center; align-items: center; font-size: 14px; transition: all 0.2s;
+        }
+        .send-btn:hover { background: var(--primary-dark); }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="header-brand">
+            <div class="brand-logo"><i class="fa-solid fa-graduation-cap"></i></div>
+            <div class="brand-text">
+                <h1>鶯歌工商 AI 智慧助理</h1>
+                <p>YKVS Smart Campus Assistant</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button onclick="clearChat()"><i class="fa-solid fa-rotate-right"></i> 重置對話</button>
+        </div>
+    </div>
+
+    <!-- 對話視窗 -->
+    <div class="chat-box" id="chatBox">
+        <div class="message ai">
+            <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+            <div class="bubble">
+                 👋 您好！我是鶯歌工商專屬 AI 智慧校園小幫手。下方分類卡片提供常用快捷查詢，您也可以直接輸入問題查詢校園資訊喔！
+            </div>
+        </div>
+    </div>
+
+    <!-- 分類頁籤區 -->
+    <div class="panel-area">
+        <div class="category-tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'tab1')">📞 常用處室</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab2')">👨‍🏫 師長與班級</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab3')">📜 學生法規</button>
+            <button class="tab-btn" onclick="switchTab(event, 'tab4')">📅 生活與日程</button>
+        </div>
+
+        <!-- 頁籤 1: 常用處室 -->
+        <div class="tab-content active" id="tab1">
+            <button class="chip-btn" onclick="setQuery('查詢生輔組分機')">生輔組分機</button>
+            <button class="chip-btn" onclick="setQuery('查詢教務處分機')">教務處分機</button>
+            <button class="chip-btn" onclick="setQuery('查詢實習處分機')">實習處分機</button>
+            <button class="chip-btn" onclick="setQuery('電腦教室分機是多少')">電腦教室分機</button>
+            <button class="chip-btn" onclick="setQuery('圖書館分機是多少')">圖書館分機</button>
+        </div>
+
+        <!-- 頁籤 2: 師長與班級 -->
+        <div class="tab-content" id="tab2">
+            <button class="chip-btn" onclick="setQuery('查詢老師分機')">老師分機查詢</button>
+            <button class="chip-btn" onclick="setQuery('查詢老師處室單位')">老師所屬單位</button>
+            <button class="chip-btn" onclick="setQuery('資處科辦公室分機')">資處科辦公室</button>
+            <button class="chip-btn" onclick="setQuery('寶二忠班級分機')">班級分機查詢</button>
+        </div>
+
+        <!-- 頁籤 3: 學生法規 -->
+        <div class="tab-content" id="tab3">
+            <button class="chip-btn" onclick="setQuery('學生請假期限與手續')">請假規定與期限</button>
+            <button class="chip-btn" onclick="setQuery('行動載具使用規定')">行動載具使用規範</button>
+            <button class="chip-btn" onclick="setQuery('學生獎懲實施規定')">獎懲與銷過實施要點</button>
+            <button class="chip-btn" onclick="setQuery('學生生活輔導規定')">校園生活輔導規定</button>
+        </div>
+
+        <!-- 頁籤 4: 生活與日程 -->
+        <div class="tab-content" id="tab4">
+            <button class="chip-btn" onclick="setQuery('最近有什麼重要行事曆日程')">本週校園行事曆</button>
+            <button class="chip-btn" onclick="setQuery('鶯歌今天天氣如何')">鶯歌即時天氣</button>
+            <button class="chip-btn" onclick="setQuery('第一次段考時間')">段考日程查詢</button>
+        </div>
+    </div>
+
+    <!-- 輸入區 -->
+    <div class="input-area">
+        <div class="input-box">
+            <input type="text" id="userInput" class="chat-input" placeholder="試著輸入：生輔組分機是多少？或 輸入問題..." onkeypress="handleKeyPress(event)">
+            <button class="send-btn" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(evt, tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        evt.currentTarget.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
+
+    function clearChat() {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.innerHTML = `
+            <div class="message ai">
+                <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="bubble">對話紀錄已重置。請問還有什麼可以幫您的？</div>
+            </div>`;
+    }
+
+    function setQuery(text) {
+        document.getElementById('userInput').value = text;
+        sendMessage();
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') sendMessage();
+    }
+
+    async function sendMessage() {
+        const inputEl = document.getElementById('userInput');
+        const query = inputEl.value.trim();
+        if (!query) return;
+
+        const chatBox = document.getElementById('chatBox');
+
+        // 使用者訊息
+        chatBox.insertAdjacentHTML('beforeend', `
+            <div class="message user">
+                <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                <div class="bubble">${escapeHTML(query)}</div>
+            </div>`);
+        inputEl.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // Loading 狀態
+        const loadingId = 'loading-' + Date.now();
+        chatBox.insertAdjacentHTML('beforeend', `
+            <div class="message ai" id="${loadingId}">
+                <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                <div class="bubble"><i class="fa-solid fa-spinner fa-spin"></i> 檢索校園資料庫中...</div>
+            </div>`);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        // 呼叫後端 API (/chat)
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    messages: [{ role: "user", content: query }],
+                    message: query,
+                    prompt: query
+                })
+            });
+
+            const loadingEl = document.getElementById(loadingId);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const textResult = await res.text();
+            let replyText = textResult;
+
+            try {
+                const data = JSON.parse(textResult);
+                replyText = data.reply || data.answer || data.message || textResult;
+            } catch (e) {}
+
+            if (loadingEl) {
+                // 使用 marked 解析 Markdown，讓超連結與項目符號漂亮呈現！
+                const formattedHTML = marked.parse(replyText);
+                loadingEl.querySelector('.bubble').innerHTML = formattedHTML;
+            }
+        } catch (error) {
+            const loadingEl = document.getElementById(loadingId);
+            if (loadingEl) {
+                loadingEl.querySelector('.bubble').innerText = '查詢失敗，請確認 Colab 後端服務連線正常。';
+            }
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function escapeHTML(str) {
+        return String(str).replace(/[&<>'"]/g, 
+            tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+        );
+    }
+</script>
+
+</body>
+</html>
